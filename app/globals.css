@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3f5f1;
+  --board: #ffffff;
+  --ink: #17251f;
+  --muted: #5d6b64;
+  --line: #dbe2dc;
+  --rail: #183a2e;
+  --ai: #8a2f6b;
+  --ai-soft: #f7ecf3;
+  --code: #2f4fa3;
+  --code-soft: #eaf0fb;
+  --data: #1f7a62;
+  --data-soft: #e6f4ef;
+  --human: #b0661a;
+  --human-soft: #fcf1e3;
+  --cut: #b42318;
+  --cut-soft: #fdecea;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-board: var(--board);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-rail: var(--rail);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-code: var(--code);
+  --color-code-soft: var(--code-soft);
+  --color-data: var(--data);
+  --color-data-soft: var(--data-soft);
+  --color-human: var(--human);
+  --color-human-soft: var(--human-soft);
+  --color-cut: var(--cut);
+  --color-cut-soft: var(--cut-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+table { border-collapse: collapse; }
+input, select, textarea { background: #fff; }
