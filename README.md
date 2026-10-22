@@ -4,6 +4,8 @@ MESA Term 2 · AI Systems Thinking (Mihirr Sose) · Case 01 "Deepa's 90-Day Mand
 
 **Live:** https://freshroots-reorder-desk-three.vercel.app · Components map: `/components-map.png`
 
+Deploys: every push to `main` redeploys on Vercel and applies new `supabase/migrations/` files to Supabase (both linked to this repo).
+
 Twice a week (Mon + Thu, 7:00 am IST) the desk reads the SAP export, checks it, applies Raghav's five written rules to every SKU, asks Gemini to explain only the flagged ones, and puts a recommendation sheet in front of Raghav. Approved lines become draft POs (Zoho-format CSV). **AI proposes, code decides, Raghav approves.**
 
 ## How it maps to the components map
