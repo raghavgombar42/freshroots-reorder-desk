@@ -36,6 +36,9 @@ npm run dev
 
 `.env.local`: `OPENROUTER_API_KEY`, `GEMINI_MODEL` (google/…), `DATABASE_URL` (Supabase **Session pooler**, port 5432), `CRON_SECRET`, `OPERATOR_PASSCODE`.
 
+## Database changes (Supabase GitHub integration)
+Schema changes go in `supabase/migrations/` as a new timestamped `.sql` file. On push to `main`, Supabase applies them to the project. `db/schema.sql` is the same schema for `npm run db:setup`; keep both in step.
+
 ## Notes
 - The stock snapshot in the case data is dated 19 Oct 2026. Runs block once it is more than 3 days old (rule setting). For a demo, use **SAP data → Simulate SAP stock refresh** (clearly labelled pilot-only).
 - The case data has no unit prices, so ₹ losses are entered per period on the Loss tracker; the counter-metric tracks units on hand.

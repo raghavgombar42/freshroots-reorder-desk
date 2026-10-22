@@ -1,0 +1,6 @@
+# Supabase project config for the GitHub integration.
+# On every push to main, Supabase applies new files in supabase/migrations/ to the linked project.
+project_id = "freshroots-reorder-desk"
+
+[db]
+major_version = 17
