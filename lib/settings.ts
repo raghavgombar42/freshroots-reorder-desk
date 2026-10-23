@@ -14,7 +14,7 @@ export const SETTINGS_SCHEMA = z
     festivalUpliftPct: z.number().min(0).max(200),
     swingPct: z.number().min(5).max(500),
     minHistoryWeeks: z.number().int().min(1).max(52),
-    maxDataAgeDays: z.number().int().min(0).max(60),
+    maxDataAgeDays: z.number().int().min(0).max(365).nullable(),
   })
   .refine((s) => s.stockoutWeeks < s.overstockWeeks, "Stockout weeks must be below overstock weeks")
   .refine((s) => s.perishableMinWeeks < s.perishableMaxWeeks, "Perishable minimum must be below the maximum");
@@ -29,7 +29,7 @@ export const SETTING_LABELS: Record<keyof Settings, string> = {
   festivalUpliftPct: "Festival-month demand uplift (%)",
   swingPct: "Exception: week-on-week swing above (%)",
   minHistoryWeeks: "Exception: fewer weeks of history than",
-  maxDataAgeDays: "Block run if stock snapshot older than (days)",
+  maxDataAgeDays: "Block run if stock snapshot older than (days; blank = no limit)",
 };
 
 export async function currentSettings(): Promise<{ version: number; settings: Settings; createdAt: string; note: string | null }> {

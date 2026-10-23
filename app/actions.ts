@@ -116,8 +116,12 @@ export async function saveRules(form: FormData) {
 async function saveRulesWork(form: FormData) {
   await requireOperator();
   const { settings: current } = await currentSettings();
-  const next: Record<string, number> = {};
-  for (const k of Object.keys(current) as (keyof Settings)[]) next[k] = Number(form.get(k));
+  const next: Record<string, number | null> = {};
+  for (const k of Object.keys(current) as (keyof Settings)[]) {
+    const raw = String(form.get(k) ?? "").trim();
+    // Only the freshness limit may be blank (= no limit); a blank anywhere else is an error.
+    next[k] = raw === "" && k === "maxDataAgeDays" ? null : raw === "" ? NaN : Number(raw);
+  }
   const parsed = SETTINGS_SCHEMA.safeParse(next);
   if (!parsed.success) back("/rules", parsed.error.issues.map((i) => `${i.path.join(".") || "rules"}: ${i.message}`).join("; "), false);
   const changed = (Object.keys(current) as (keyof Settings)[]).filter((k) => current[k] !== next[k]);

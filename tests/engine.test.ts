@@ -76,8 +76,8 @@ test("9. Missing stock row → run is blocked, never guessed", () => {
   assert.throws(() => runEngine({ ...base, stock }), ValidationError);
 });
 
-test("10. Stale stock snapshot (older than 3 days) → run is blocked", () => {
-  const problems = validate({ ...base, runDate: "2026-10-30" });
+test("10a. With a 3-day freshness limit set, a stale stock snapshot blocks the run", () => {
+  const problems = validate({ ...base, runDate: "2026-10-30", settings: { ...DEFAULT_SETTINGS, maxDataAgeDays: 3 } });
   assert.ok(problems.some((p) => p.includes("days old")));
 });
 
@@ -98,4 +98,8 @@ test("13. A SKU with no sales rows at all → Raghav decides, cover is null (not
   assert.equal(r.qty, 0);
   assert.equal(r.metrics.weeksOfCover, null);
   assert.ok(r.reason.includes("no sales"));
+});
+
+test("10b. Default (no freshness limit): a 30-day-old snapshot still runs", () => {
+  assert.deepEqual(validate({ ...base, runDate: "2026-11-18" }).filter((p) => p.includes("days old")), []);
 });

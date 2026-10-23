@@ -42,6 +42,6 @@ npm run dev
 Schema changes go in `supabase/migrations/` as a new timestamped `.sql` file. On push to `main`, Supabase applies them to the project. `db/schema.sql` is the same schema for `npm run db:setup`; keep both in step.
 
 ## Notes
-- The stock snapshot in the case data is dated 19 Oct 2026. Runs block once it is more than 3 days old (rule setting). For a demo, use **SAP data → Simulate SAP stock refresh** (clearly labelled pilot-only).
+- Freshness: by Raghav's call there is no limit on how old the SAP stock export may be (rules v2). A limit in days can be set again on the Rules page; with one set, older snapshots block the run.
 - The case data has no unit prices, so ₹ losses are entered per period on the Loss tracker; the counter-metric tracks units on hand.
 - Connections: request-scoped clients always closed + a pg_cron job closing pooler sessions idle > 2 min (Vercel freezes instances with sockets open; the session pooler allows ~15).

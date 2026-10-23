@@ -33,7 +33,7 @@ export type Settings = {
   festivalUpliftPct: number; // demand uplift in festival months, applied before any threshold
   swingPct: number; // any week-on-week change bigger than this → exception for Raghav
   minHistoryWeeks: number; // fewer weeks of history → exception (new launch)
-  maxDataAgeDays: number; // stock snapshot older than this → run blocked
+  maxDataAgeDays: number | null; // stock snapshot older than this → run blocked; null = no freshness limit
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   festivalUpliftPct: 25,
   swingPct: 50,
   minHistoryWeeks: 12,
-  maxDataAgeDays: 3,
+  maxDataAgeDays: null, // Raghav's call (23 Oct): any upload date is fine, no freshness limit
 };
 
 export type Action = "REORDER_NOW" | "REORDER_UP" | "PAUSE" | "NO_ACTION" | "RAGHAV_DECIDES";
@@ -145,7 +145,7 @@ export function validate(input: {
       else {
         const age = daysBetween(r.asOf, runDate);
         if (age < 0) problems.push(`${s.id}: stock date ${r.asOf} is after the run date ${runDate}.`);
-        else if (age > settings.maxDataAgeDays)
+        else if (settings.maxDataAgeDays !== null && age > settings.maxDataAgeDays)
           problems.push(`${s.id}: stock snapshot is ${age} days old (limit ${settings.maxDataAgeDays}). Upload a fresh SAP stock export.`);
       }
     }

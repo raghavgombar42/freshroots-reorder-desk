@@ -39,7 +39,8 @@ export default async function Rules({ searchParams }: { searchParams: SP }) {
                 name={k}
                 type="number"
                 step="any"
-                defaultValue={cur.settings[k]}
+                defaultValue={cur.settings[k] ?? ""}
+                placeholder={k === "maxDataAgeDays" ? "no limit" : undefined}
                 disabled={!operator}
                 className="w-24 rounded-md border border-line px-2 py-1 text-right tabular-nums disabled:bg-paper"
               />
