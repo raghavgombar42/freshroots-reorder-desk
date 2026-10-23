@@ -90,3 +90,12 @@ test("12. Raghav edits a rule number (stockout 6 → 4 wks): Brown Rice (4.4 wks
   const r = run({ settings: { ...DEFAULT_SETTINGS, stockoutWeeks: 4 } }).SKU003;
   assert.equal(r.action, "NO_ACTION");
 });
+
+test("13. A SKU with no sales rows at all → Raghav decides, cover is null (not Infinity), no quantity", () => {
+  const sales = base.sales.filter((s) => s.skuId !== "SKU009");
+  const r = run({ sales }).SKU009;
+  assert.equal(r.action, "RAGHAV_DECIDES");
+  assert.equal(r.qty, 0);
+  assert.equal(r.metrics.weeksOfCover, null);
+  assert.ok(r.reason.includes("no sales"));
+});

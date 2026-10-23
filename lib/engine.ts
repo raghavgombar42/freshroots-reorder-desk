@@ -60,7 +60,7 @@ export type Metrics = {
   upliftPct: number; // 0 or festivalUpliftPct
   weeklyDemand: number; // avg12 × (1 + uplift)
   stock: number;
-  weeksOfCover: number;
+  weeksOfCover: number | null; // null = no sales in the window, so cover can't be computed
   maxSwingPct: number;
 };
 
@@ -200,7 +200,7 @@ export function computeMetrics(sku: Sku, sales: SalesRow[], stockUnits: number, 
     upliftPct,
     weeklyDemand: round(weeklyDemand),
     stock: stockUnits,
-    weeksOfCover: weeklyDemand > 0 ? round(stockUnits / weeklyDemand) : Infinity,
+    weeksOfCover: weeklyDemand > 0 ? round(stockUnits / weeklyDemand) : null,
     maxSwingPct: round(maxSwingPct),
   };
 }
@@ -214,13 +214,14 @@ export function recommend(sku: Sku, m: Metrics, s: Settings): Recommendation {
   const minW = perishable ? s.perishableMinWeeks : s.stockoutWeeks;
   const maxW = perishable ? s.perishableMaxWeeks : s.overstockWeeks;
 
-  const stockout = m.weeksOfCover < minW;
-  const overstock = m.weeksOfCover > maxW;
+  // No sales at all: never a stockout; any stock on hand counts as overstock (nothing is selling it).
+  const stockout = m.weeksOfCover !== null && m.weeksOfCover < minW;
+  const overstock = m.weeksOfCover === null ? m.stock > 0 : m.weeksOfCover > maxW;
   const highDemand = m.avg12 > 0 && m.avg4 > m.avg12 * (1 + s.highDemandPct / 100);
 
   if (m.upliftPct > 0) rulesFired.push(`Festival month: demand +${m.upliftPct}%`);
   if (stockout) rulesFired.push(`${perishable ? "Perishable window" : "Stockout risk"}: cover ${m.weeksOfCover} wks < ${minW}`);
-  if (overstock) rulesFired.push(`${perishable ? "Perishable window" : "Overstock risk"}: cover ${m.weeksOfCover} wks > ${maxW}`);
+  if (overstock) rulesFired.push(`${perishable ? "Perishable window" : "Overstock risk"}: ${m.weeksOfCover === null ? "no sales" : `cover ${m.weeksOfCover} wks`} > ${maxW}`);
   if (highDemand) rulesFired.push(`High demand: last 4 wks +${m.trendPct}% vs 12-wk avg (> ${s.highDemandPct}%)`);
 
   // Card 6: cases the written rules don't cover; Raghav decides these himself.
@@ -241,7 +242,10 @@ export function recommend(sku: Sku, m: Metrics, s: Settings): Recommendation {
     qty = up;
   } else action = "NO_ACTION";
 
-  const cover = `${m.stock} in stock ÷ ${m.weeklyDemand}/wk${m.upliftPct ? ` (incl. +${m.upliftPct}% festival)` : ""} = ${m.weeksOfCover} wks of cover`;
+  const cover =
+    m.weeksOfCover === null
+      ? `${m.stock} in stock, no sales in the last ${Math.min(12, m.weeksOfHistory) || 0} weeks`
+      : `${m.stock} in stock ÷ ${m.weeklyDemand}/wk${m.upliftPct ? ` (incl. +${m.upliftPct}% festival)` : ""} = ${m.weeksOfCover} wks of cover`;
   const reasonByAction: Record<Action, string> = {
     REORDER_NOW: `${cover}, below the ${minW}-week minimum. Reorder ${qty}${highDemand ? ` (1.5× standard ${sku.stdQty}, demand up ${m.trendPct}%)` : ` (standard qty)`}.`,
     REORDER_UP: `Demand up ${m.trendPct}% vs the 12-week average. ${cover}. Next order at ${qty} (1.5× standard ${sku.stdQty}).`,

@@ -158,7 +158,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
                       <td className="py-1.5 pr-3 whitespace-nowrap">
                         <b>{r.sku_id}</b> {r.name.replace("Freshroots ", "")}
                       </td>
-                      <td className="py-1.5 pr-3 tabular-nums">{r.metrics.weeksOfCover}</td>
+                      <td className="py-1.5 pr-3 tabular-nums">{r.metrics.weeksOfCover ?? "no sales"}</td>
                       <td className="py-1.5 pr-3 tabular-nums">{r.metrics.trendPct > 0 ? "+" : ""}{r.metrics.trendPct}%</td>
                       <td className="py-1.5 text-muted">{r.reason}</td>
                     </tr>
@@ -185,7 +185,7 @@ function RecRow({ r, operator }: { r: Rec; operator: boolean }) {
         {r.perishability === "High" && <Tag tone="human">perishable</Tag>}
         {r.qty > 0 && <span className="ml-1 rounded bg-paper px-2 py-0.5 text-sm font-semibold tabular-nums">{r.qty} units</span>}
         <span className="ml-auto text-xs text-muted tabular-nums">
-          stock {m.stock} · demand {m.weeklyDemand}/wk · cover {m.weeksOfCover} wks · trend {m.trendPct > 0 ? "+" : ""}
+          stock {m.stock} · demand {m.weeklyDemand}/wk · cover {m.weeksOfCover === null ? "— (no sales)" : `${m.weeksOfCover} wks`} · trend {m.trendPct > 0 ? "+" : ""}
           {m.trendPct}%
         </span>
       </div>
