@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f3f5f1;
+  --paper: #f4f6f3;
   --board: #ffffff;
-  --ink: #17251f;
-  --muted: #5d6b64;
-  --line: #dbe2dc;
-  --rail: #183a2e;
+  --ink: #15211c;
+  --muted: #5f6d66;
+  --line: #e1e7e2;
+  --rail: #17382c;
   --ai: #8a2f6b;
-  --ai-soft: #f7ecf3;
+  --ai-soft: #f8eef5;
   --code: #2f4fa3;
-  --code-soft: #eaf0fb;
+  --code-soft: #edf2fc;
   --data: #1f7a62;
-  --data-soft: #e6f4ef;
+  --data-soft: #e8f5f0;
   --human: #b0661a;
-  --human-soft: #fcf1e3;
+  --human-soft: #fcf3e6;
   --cut: #b42318;
-  --cut-soft: #fdecea;
+  --cut-soft: #fdeeec;
   color-scheme: light;
 }
 
@@ -41,10 +41,69 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-padding-top: 7rem; /* anchors never hide under the sticky mobile header */
+}
+
 body {
   background: var(--paper);
   color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
 }
 
-table { border-collapse: collapse; }
-input, select, textarea { background: #fff; }
+table {
+  border-collapse: collapse;
+}
+
+input,
+select,
+textarea {
+  background: #fff;
+}
+
+/* Inputs: one consistent look */
+.field {
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0 0.6rem;
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field:hover {
+  border-color: #c9d3cc;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--data);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--data) 18%, transparent);
+}
+
+/* Visible keyboard focus everywhere */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--data);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* <details> disclosure arrow */
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] > summary .chev {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -2,7 +2,9 @@ import { db, withDb } from "@/lib/db";
 import { isOperator } from "@/lib/auth";
 import type { Metrics } from "@/lib/engine";
 import { addLoss } from "../actions";
-import { Card, Flash, NoDb, Stat, Tag, lakh, type SP } from "../ui";
+import { SubmitButton } from "../buttons";
+import { Icon } from "../icons";
+import { Card, EmptyState, Flash, NoDb, Notice, PageHeader, Stat, Table, Tag, lakh, type SP } from "../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -57,151 +59,183 @@ export default async function Tracker({ searchParams }: { searchParams: SP }) {
     fb.set(r.sku_id, { runId: Number(r.run_id), forecast: m.weeklyDemand, actual: Math.round(actual * 10) / 10, weeks: after.length });
   }
 
+  const rejectTriggered = rejectPct > 50 && d.rate.decided >= 5;
+  const lossTriggered = last?.verdict === "up";
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Flash searchParams={searchParams} />
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Loss tracker (card 13)</h1>
-        <p className="text-sm text-muted">
-          Outcome = ₹ lost to stockouts + overstock write-offs. Time saved is an output, not the outcome. Checked every 3–4 weeks against the same metric
-          as the baseline.
-        </p>
+
+      <PageHeader
+        eyebrow={
+          <>
+            <span className="rounded-full bg-rail px-2 py-0.5 text-[11px] font-semibold text-white">Step 3 of 3</span>
+            <span>Outcome vs baseline · card 13</span>
+          </>
+        }
+        title="Loss tracker"
+        description={
+          <>
+            The outcome is <b className="font-semibold text-ink">₹ lost to stockouts plus overstock write-offs</b>. Time saved is an output, not the
+            outcome. Every 3–4 weeks the actual losses are compared with the same measure from before the desk existed.
+          </>
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat icon="history" label="Baseline (before the desk)" value="₹28–34 L / qtr" sub="Stockouts ₹18–22 L + write-offs ₹10–12 L (case brief)" />
+        <Stat
+          icon="chart"
+          label="Latest period"
+          tone={last?.verdict === "up" ? "cut" : last?.verdict === "down" ? "data" : undefined}
+          value={last ? lakh(last.total) : "—"}
+          sub={last ? `${last.period_start} → ${last.period_end} · baseline ${lakh(last.low)}–${lakh(last.high)}` : "No loss period entered yet"}
+        />
+        <Stat
+          icon="user"
+          label="Raghav rejects"
+          tone={rejectPct > 50 ? "cut" : undefined}
+          value={d.rate.decided ? `${rejectPct}%` : "—"}
+          sub={`${d.rate.rejected} rejected, ${d.rate.edited} edited, of ${d.rate.decided}`}
+        />
+        <Stat icon="clock" label="Forecast checks" value={fb.size} sub="SKUs with actual sales after a run (card F)" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Baseline (before)" value="₹28–34 L / qtr" sub="Stockouts ₹18–22 L + write-offs ₹10–12 L (case brief)" />
-        <Stat label="Latest period" value={last ? lakh(last.total) : "—"} sub={last ? `${last.period_start} → ${last.period_end} · baseline ${lakh(last.low)}–${lakh(last.high)}` : "No loss period entered yet"} />
-        <Stat label="Raghav rejects" value={<span className={rejectPct > 50 ? "text-cut" : ""}>{d.rate.decided ? `${rejectPct}%` : "—"}</span>} sub={`${d.rate.rejected} rejected, ${d.rate.edited} edited, of ${d.rate.decided}`} />
-        <Stat label="Forecast checks" value={fb.size} sub="SKUs with actual sales after a run (card F)" />
-      </div>
-
-      <Card title="Kill criteria (fixed before the run)" tone="cut">
-        <ul className="space-y-2 text-sm">
-          <li className="flex flex-wrap items-center gap-2">
-            {rejectPct > 50 && d.rate.decided >= 5 ? <Tag tone="cut">Triggered</Tag> : <Tag tone="data">Not triggered</Tag>}
-            <span>
-              <b>Early:</b> Raghav rejects more than 50% of recommendations → flag and re-evaluate the rules. Now: {d.rate.decided ? `${rejectPct}%` : "no decisions yet"}
-              {d.rate.decided > 0 && d.rate.decided < 5 && " (too few decisions to judge)"}.
-            </span>
-          </li>
-          <li className="flex flex-wrap items-center gap-2">
-            {last?.verdict === "up" ? <Tag tone="cut">Triggered: stop</Tag> : <Tag tone="data">Not triggered</Tag>}
-            <span>
-              <b>Loss:</b> if losses go up instead of down, the automation is doing the opposite of its job → stop immediately, RCA, fix, redeploy.
-              {last && ` Latest period: ${lakh(last.total)} vs baseline ${lakh(last.low)}–${lakh(last.high)}.`}
-            </span>
-          </li>
-        </ul>
+      <Card
+        icon="shield"
+        title="Kill criteria"
+        subtitle="Fixed before the pilot started, so the goalposts can't move later."
+        tone={rejectTriggered || lossTriggered ? "cut" : "data"}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className={`rounded-lg border p-3.5 ${rejectTriggered ? "border-cut/30 bg-cut-soft" : "border-line bg-paper/60"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[13px] font-semibold">1 · Early signal: Raghav&apos;s rejections</span>
+              {rejectTriggered ? <Tag tone="cut">Triggered</Tag> : <Tag tone="data">Not triggered</Tag>}
+            </div>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80">If Raghav rejects more than 50% of recommendations, flag it and re-evaluate the rules.</p>
+            <p className="mt-2 text-[13px]">
+              <b className="font-semibold">Now: {d.rate.decided ? `${rejectPct}%` : "no decisions yet"}</b>
+              {d.rate.decided > 0 && d.rate.decided < 5 && <span className="text-muted"> (too few decisions to judge)</span>}
+            </p>
+          </div>
+          <div className={`rounded-lg border p-3.5 ${lossTriggered ? "border-cut/30 bg-cut-soft" : "border-line bg-paper/60"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[13px] font-semibold">2 · Outcome: losses go up</span>
+              {lossTriggered ? <Tag tone="cut">Triggered: stop</Tag> : <Tag tone="data">Not triggered</Tag>}
+            </div>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80">
+              If losses rise instead of fall, the automation is doing the opposite of its job: stop immediately, find the root cause, fix, redeploy.
+            </p>
+            <p className="mt-2 text-[13px]">
+              {last ? (
+                <b className="font-semibold">
+                  Latest period: {lakh(last.total)} vs baseline {lakh(last.low)}–{lakh(last.high)}
+                </b>
+              ) : (
+                <span className="text-muted">No loss period entered yet.</span>
+              )}
+            </p>
+          </div>
+        </div>
       </Card>
 
-      <Card title="Loss periods">
+      <Card icon="chart" title="Loss periods" subtitle="Entered by Deepa from finance figures. The case data has no prices, so the desk can't compute ₹ itself.">
         {periods.length === 0 ? (
-          <p className="text-sm text-muted">No periods yet. Deepa enters actual stockout and write-off ₹ every 3–4 weeks (the case gives no live loss data).</p>
+          <EmptyState icon="chart" title="No periods yet">
+            Deepa enters actual stockout and write-off ₹ every 3–4 weeks. The baseline for each period is pro-rated from ₹28–34 L per quarter.
+          </EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted">
-                <tr>
-                  <th className="py-1 pr-3">Period</th>
-                  <th className="py-1 pr-3">Stockout</th>
-                  <th className="py-1 pr-3">Write-off</th>
-                  <th className="py-1 pr-3">Total</th>
-                  <th className="py-1 pr-3">Baseline for period</th>
-                  <th className="py-1">vs baseline</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periods.map((p) => (
-                  <tr key={p.id} className="border-t border-line">
-                    <td className="py-1.5 pr-3 whitespace-nowrap">
-                      {p.period_start} → {p.period_end} <span className="text-muted">({p.days} d)</span>
-                    </td>
-                    <td className="py-1.5 pr-3 tabular-nums">{lakh(Number(p.stockout_inr))}</td>
-                    <td className="py-1.5 pr-3 tabular-nums">{lakh(Number(p.writeoff_inr))}</td>
-                    <td className="py-1.5 pr-3 font-semibold tabular-nums">{lakh(p.total)}</td>
-                    <td className="py-1.5 pr-3 tabular-nums text-muted">
-                      {lakh(p.low)}–{lakh(p.high)}
-                    </td>
-                    <td className="py-1.5">
-                      {p.verdict === "down" ? <Tag tone="data">Below baseline</Tag> : p.verdict === "up" ? <Tag tone="cut">Above: stop</Tag> : <Tag>Within range</Tag>}
-                      {p.note && <span className="ml-2 text-muted">{p.note}</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table head={["Period", "Stockout", "Write-off", "Total", "Baseline for period", "vs baseline"]} minWidth={720}>
+            {periods.map((p) => (
+              <tr key={p.id}>
+                <td className="whitespace-nowrap">
+                  {p.period_start} → {p.period_end} <span className="text-muted">({p.days} d)</span>
+                </td>
+                <td className="tabular-nums">{lakh(Number(p.stockout_inr))}</td>
+                <td className="tabular-nums">{lakh(Number(p.writeoff_inr))}</td>
+                <td className="font-semibold tabular-nums">{lakh(p.total)}</td>
+                <td className="tabular-nums text-muted">
+                  {lakh(p.low)}–{lakh(p.high)}
+                </td>
+                <td>
+                  {p.verdict === "down" ? <Tag tone="data">Below baseline</Tag> : p.verdict === "up" ? <Tag tone="cut">Above: stop</Tag> : <Tag>Within range</Tag>}
+                  {p.note && <span className="ml-2 text-muted">{p.note}</span>}
+                </td>
+              </tr>
+            ))}
+          </Table>
         )}
         {operator && (
-          <form action={addLoss} className="mt-4 flex flex-wrap items-end gap-2 text-sm">
-            <label className="flex flex-col">
-              From
-              <input type="date" name="start" required className="rounded-md border border-line px-2 py-1" />
-            </label>
-            <label className="flex flex-col">
-              To
-              <input type="date" name="end" required className="rounded-md border border-line px-2 py-1" />
-            </label>
-            <label className="flex flex-col">
-              Stockout loss (₹ L)
-              <input type="number" name="stockout" step="0.1" min="0" required className="w-28 rounded-md border border-line px-2 py-1" />
-            </label>
-            <label className="flex flex-col">
-              Write-off (₹ L)
-              <input type="number" name="writeoff" step="0.1" min="0" required className="w-28 rounded-md border border-line px-2 py-1" />
-            </label>
-            <label className="flex flex-col">
-              Note
-              <input name="note" className="w-56 rounded-md border border-line px-2 py-1" />
-            </label>
-            <button className="rounded-md bg-human px-3 py-1.5 font-semibold text-white">Add period</button>
+          <form action={addLoss} className="mt-5 rounded-lg border border-line bg-paper/60 p-4">
+            <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold">
+              <Icon name="pencil" className="h-3.5 w-3.5 text-muted" /> Add a loss period
+            </div>
+            <div className="flex flex-wrap items-end gap-3 text-[12px] font-medium text-muted">
+              <label className="flex flex-col gap-1">
+                From
+                <input type="date" name="start" required className="field" />
+              </label>
+              <label className="flex flex-col gap-1">
+                To
+                <input type="date" name="end" required className="field" />
+              </label>
+              <label className="flex flex-col gap-1">
+                Stockout loss (₹ L)
+                <input type="number" name="stockout" step="0.1" min="0" required className="field w-32" />
+              </label>
+              <label className="flex flex-col gap-1">
+                Write-off (₹ L)
+                <input type="number" name="writeoff" step="0.1" min="0" required className="field w-32" />
+              </label>
+              <label className="flex flex-1 flex-col gap-1">
+                Note (optional)
+                <input name="note" className="field min-w-48" />
+              </label>
+              <SubmitButton variant="human" pendingText="Saving…">
+                Add period
+              </SubmitButton>
+            </div>
           </form>
         )}
       </Card>
 
-      <Card title={<span>Early warning: forecast vs actual depletion <Tag tone="data">card F</Tag></span>}>
+      <Card icon="clock" title="Early warning: forecast vs actual" subtitle="Card F. A signal weeks before the ₹ loss shows up.">
         {fb.size === 0 ? (
-          <p className="text-sm text-muted">
-            Waiting for sales weeks that arrive after a run. When the next weekly SAP sales export is loaded, each SKU&apos;s estimated weekly demand is
-            compared with what actually sold. A gap above 20% is the early warning, before the ₹ loss shows up.
-          </p>
+          <Notice tone="info" title="Waiting for new sales weeks">
+            When the next weekly SAP sales export is loaded, each SKU&apos;s estimated weekly demand from a run is compared with what actually sold. A gap
+            above 20% is the early warning.
+          </Notice>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted">
-              <tr>
-                <th className="py-1 pr-3">SKU</th>
-                <th className="py-1 pr-3">Run</th>
-                <th className="py-1 pr-3">Estimated / wk</th>
-                <th className="py-1 pr-3">Actual / wk</th>
-                <th className="py-1">Gap</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...fb].map(([sku, f]) => {
-                const gap = f.actual ? Math.round(((f.actual - f.forecast) / f.actual) * 100) : 0;
-                return (
-                  <tr key={sku} className="border-t border-line">
-                    <td className="py-1.5 pr-3">{sku}</td>
-                    <td className="py-1.5 pr-3">#{f.runId}</td>
-                    <td className="py-1.5 pr-3 tabular-nums">{f.forecast}</td>
-                    <td className="py-1.5 pr-3 tabular-nums">
-                      {f.actual} <span className="text-muted">({f.weeks} wk)</span>
-                    </td>
-                    <td className="py-1.5">{Math.abs(gap) > 20 ? <Tag tone="cut">{gap}%</Tag> : <Tag tone="data">{gap}%</Tag>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <Table head={["SKU", "Run", "Estimated / wk", "Actual / wk", "Gap"]}>
+            {[...fb].map(([sku, f]) => {
+              const gap = f.actual ? Math.round(((f.actual - f.forecast) / f.actual) * 100) : 0;
+              return (
+                <tr key={sku}>
+                  <td className="font-semibold">{sku}</td>
+                  <td>#{f.runId}</td>
+                  <td className="tabular-nums">{f.forecast}</td>
+                  <td className="tabular-nums">
+                    {f.actual} <span className="text-muted">({f.weeks} wk)</span>
+                  </td>
+                  <td>{Math.abs(gap) > 20 ? <Tag tone="cut">{gap}%</Tag> : <Tag tone="data">{gap}%</Tag>}</td>
+                </tr>
+              );
+            })}
+          </Table>
         )}
       </Card>
 
-      <Card title="Counter-metric: total stock on hand">
-        <p className="mb-2 text-sm text-muted">More reorders must not quietly pile up stock. The case data has no unit prices, so this tracks units across all SKUs.</p>
-        <div className="flex flex-wrap gap-3 text-sm">
+      <Card
+        icon="box"
+        title="Counter-metric: total stock on hand"
+        subtitle="More reorders must not quietly pile up stock. The case data has no unit prices, so this tracks units across all SKUs."
+      >
+        <div className="flex flex-wrap gap-2">
           {d.stockTrend.map((s) => (
-            <span key={s.as_of} className="rounded border border-line px-2 py-1 tabular-nums">
-              {s.as_of}: <b>{Number(s.units).toLocaleString("en-IN")}</b>
+            <span key={s.as_of} className="rounded-lg border border-line bg-paper/60 px-3 py-2 text-[13px] tabular-nums">
+              <span className="text-muted">{s.as_of}</span> <b className="ml-1 font-semibold">{Number(s.units).toLocaleString("en-IN")}</b>
+              <span className="text-muted"> units</span>
             </span>
           ))}
         </div>
