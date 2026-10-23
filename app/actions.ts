@@ -8,6 +8,7 @@ import { ingestCsv } from "@/lib/ingest";
 import { runPipeline, todayIST } from "@/lib/pipeline";
 import { SETTINGS_SCHEMA, currentSettings } from "@/lib/settings";
 import type { Settings } from "@/lib/engine";
+import { pushRunToZoho } from "@/lib/zoho";
 
 function back(path: string, msg: string, ok = true): never {
   redirect(`${path}?${ok ? "ok" : "err"}=${encodeURIComponent(msg)}`);
@@ -188,4 +189,26 @@ async function addLossWork(form: FormData) {
     values (${start}, ${end}, ${Math.round(stockout * 100000)}, ${Math.round(writeoff * 100000)}, ${note})`;
   revalidatePath("/", "layout");
   back("/tracker", "Loss period saved");
+}
+
+/** Card 12, live: send a run's approved lines to Zoho Inventory as DRAFT POs (one per distributor). */
+export async function pushToZoho(form: FormData) {
+  return withDb(() => pushToZohoWork(form));
+}
+async function pushToZohoWork(form: FormData) {
+  await requireOperator();
+  const runId = Number(form.get("runId"));
+  if (!Number.isInteger(runId) || runId <= 0) back("/pos", "Unknown run", false);
+  let results;
+  try {
+    results = await pushRunToZoho(runId);
+  } catch (e) {
+    back("/pos", (e as Error).message, false);
+  }
+  revalidatePath("/", "layout");
+  const failed = results.filter((r) => r.status === "failed");
+  const text = results
+    .map((r) => (r.status === "failed" ? `${r.vendor}: failed (${r.error})` : `${r.vendor}: ${r.poNumber}${r.status === "already" ? " (already in Zoho)" : ""}`))
+    .join("; ");
+  back("/pos", `Zoho draft POs for run #${runId}: ${text || "nothing to send"}`, failed.length === 0);
 }
