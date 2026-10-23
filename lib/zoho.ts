@@ -32,7 +32,7 @@ async function accessToken(): Promise<string> {
 
 type ZohoResp = { code: number; message: string } & Record<string, unknown>;
 
-async function zoho(method: "GET" | "POST", path: string, query: Record<string, string> = {}, json?: unknown): Promise<ZohoResp> {
+async function zoho(method: "GET" | "POST" | "PUT", path: string, query: Record<string, string> = {}, json?: unknown): Promise<ZohoResp> {
   const url = new URL(`${API()}${path}`);
   url.searchParams.set("organization_id", process.env.ZOHO_ORG_ID ?? "");
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
@@ -77,10 +77,14 @@ async function itemId(skuId: string): Promise<string> {
   const [m] = await sql`select zoho_item_id from zoho_items where sku_id = ${skuId}`;
   if (m) return m.zoho_item_id;
   const [s] = await sql`select id, name from skus where id = ${skuId}`;
+  // Purchase orders only accept items that carry purchase information, so items are "sales_and_purchases".
+  const PURCHASABLE = { item_type: "sales_and_purchases", purchase_rate: 0, purchase_description: "Freshroots SKU (price set by procurement)" };
   const found = (await zoho("GET", "/items", { sku: skuId })).items as { item_id: string; sku?: string }[] | undefined;
+  const existing = found?.find((i) => i.sku === skuId)?.item_id;
+  if (existing) await zoho("PUT", `/items/${existing}`, {}, PURCHASABLE); // make an older sales-only item purchasable
   const id =
-    found?.find((i) => i.sku === skuId)?.item_id ??
-    ((await zoho("POST", "/items", {}, { name: s?.name ?? skuId, sku: skuId, unit: "Units", rate: 0, purchase_rate: 0, product_type: "goods" })).item as { item_id: string })
+    existing ??
+    ((await zoho("POST", "/items", {}, { name: s?.name ?? skuId, sku: skuId, unit: "Units", rate: 0, product_type: "goods", ...PURCHASABLE })).item as { item_id: string })
       .item_id;
   await sql`insert into zoho_items (sku_id, zoho_item_id) values (${skuId}, ${id}) on conflict (sku_id) do nothing`;
   return id;

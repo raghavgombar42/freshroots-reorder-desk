@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "db:setup": "tsx --env-file=.env.local scripts/setup-db.ts",
     "run:once": "tsx --env-file=.env.local scripts/run-once.ts",
-    "zoho:connect": "tsx --env-file=.env.local scripts/zoho-connect.ts"
+    "zoho:connect": "tsx --env-file=.env.local scripts/zoho-connect.ts",
+    "zoho:push": "tsx --env-file=.env.local scripts/zoho-push.ts"
   },
   "dependencies": {
     "next": "16.4.0",
