@@ -1,32 +1,47 @@
 @import "tailwindcss";
 
+/*
+  Freshroots design tokens.
+  Warm white canvas, white surfaces, near-black ink, one green accent.
+  Semantic colours are used only for status, never for decoration.
+*/
 :root {
-  --paper: #f4f6f3;
-  --board: #ffffff;
-  --ink: #15211c;
-  --muted: #5f6d66;
-  --line: #e1e7e2;
-  --rail: #17382c;
-  --ai: #8a2f6b;
-  --ai-soft: #f8eef5;
-  --code: #2f4fa3;
-  --code-soft: #edf2fc;
-  --data: #1f7a62;
-  --data-soft: #e8f5f0;
-  --human: #b0661a;
-  --human-soft: #fcf3e6;
+  --paper: #f7f6f3; /* canvas */
+  --board: #ffffff; /* surfaces */
+  --sunk: #f3f2ee; /* inset areas, table headers */
+  --ink: #1b1c19; /* primary text */
+  --muted: #64655f; /* secondary text */
+  --faint: #8d8e87; /* tertiary text, placeholders */
+  --line: #e7e5df; /* borders */
+  --line-strong: #d6d4cc;
+  --rail: #13633f; /* Freshroots green: primary accent */
+  --rail-hover: #0f5235;
+  --rail-soft: #ebf4ee;
+  --ai: #7a3b8f;
+  --ai-soft: #f6f0f8;
+  --code: #2e5aa7;
+  --code-soft: #eef3fb;
+  --data: #13633f;
+  --data-soft: #ebf4ee;
+  --human: #a35a0c;
+  --human-soft: #fbf3e8;
   --cut: #b42318;
-  --cut-soft: #fdeeec;
+  --cut-soft: #fdf0ee;
   color-scheme: light;
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-board: var(--board);
+  --color-sunk: var(--sunk);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-rail: var(--rail);
+  --color-rail-hover: var(--rail-hover);
+  --color-rail-soft: var(--rail-soft);
   --color-ai: var(--ai);
   --color-ai-soft: var(--ai-soft);
   --color-code: var(--code);
@@ -42,12 +57,16 @@
 }
 
 html {
-  scroll-padding-top: 7rem; /* anchors never hide under the sticky mobile header */
+  scroll-padding-top: 6rem;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
   font-feature-settings: "cv11", "ss01";
 }
 
@@ -55,34 +74,39 @@ table {
   border-collapse: collapse;
 }
 
-input,
-select,
-textarea {
-  background: #fff;
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Inputs: one consistent look */
+/* Inputs: one consistent look (in the components layer so utilities can still override) */
+@layer components {
 .field {
-  height: 2rem;
+  height: 2.25rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   background: #fff;
-  padding: 0 0.6rem;
-  font-size: 13px;
+  padding: 0 0.7rem;
+  font-size: 14px;
+  color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+.field::placeholder {
+  color: var(--faint);
+}
 .field:hover {
-  border-color: #c9d3cc;
+  border-color: #c4c2b9;
 }
 .field:focus {
   outline: none;
-  border-color: var(--data);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--data) 18%, transparent);
+  border-color: var(--rail);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rail) 16%, transparent);
+}
 }
 
 /* Visible keyboard focus everywhere */
 :where(a, button, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--data);
+  outline: 2px solid var(--rail);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -97,6 +121,21 @@ details > summary::-webkit-details-marker {
 }
 details[open] > summary .chev {
   transform: rotate(180deg);
+}
+
+/* Gentle page entrance (respects reduced motion below) */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: rise 0.18s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 import { db, withDb } from "@/lib/db";
 import { Icon } from "../icons";
-import { Card, EmptyState, Flash, NoDb, PageHeader, SourceTag, Table, Tag, ist, type SP } from "../ui";
+import { Card, EmptyState, Flash, NoDb, PageHeader, Table, Tag, ist, type SP } from "../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -28,44 +28,55 @@ export default async function Runs({ searchParams }: { searchParams: SP }) {
       <Flash searchParams={searchParams} />
 
       <PageHeader
-        eyebrow={
-          <>
-            <span>Audit · card L</span>
-            <SourceTag kind="data" />
-          </>
-        }
+        eyebrow={<span>Audit</span>}
         title="Run log"
-        description="Every run, kept for audit: who or what triggered it, which rule version it used, what it flagged, what the AI cost, and why it stopped if it did."
+        description="Every run, kept for audit: what triggered it, which rule version it used, what it flagged, what the AI cost, and why it stopped if it did."
       />
 
-      <Card icon="history" title={`Last ${runs.length} runs`} subtitle="Scheduled runs come from Vercel Cron (Mon + Thu, 7:00 am IST); Run now is Raghav's off-cycle button.">
+      <Card
+        flush
+        title={`Last ${runs.length} runs`}
+        subtitle="Scheduled runs come from Vercel Cron (Mon + Thu, 7:00 am IST); Run now is Raghav's off-cycle button."
+      >
         {runs.length === 0 ? (
-          <EmptyState icon="history" title="No runs yet" />
+          <EmptyState compact icon="history" title="No runs yet" />
         ) : (
-          <Table head={["Run", "Started", "Trigger", "Status", "Rules", "Flagged", "AI cost", "Notes"]} minWidth={820}>
+          <Table
+            head={[
+              "Run",
+              "Started",
+              "Trigger",
+              "Status",
+              "Rules",
+              { label: "Flagged", align: "right" },
+              { label: "AI cost", align: "right" },
+              "Notes",
+            ]}
+            minWidth={860}
+          >
             {runs.map((r) => {
               const s = STATUS[r.status] ?? { tone: "cut" as const, label: r.status };
               const problems = r.problems as string[];
               return (
                 <tr key={r.id}>
-                  <td className="font-semibold">#{r.id}</td>
-                  <td className="whitespace-nowrap">{ist(r.started_at)}</td>
-                  <td className="whitespace-nowrap">
+                  <td className="num font-semibold">#{r.id}</td>
+                  <td className="num whitespace-nowrap">{ist(r.started_at)}</td>
+                  <td className="whitespace-nowrap text-muted">
                     <span className="inline-flex items-center gap-1.5">
-                      <Icon name={r.trigger === "cron" ? "clock" : "play"} className="h-3.5 w-3.5 text-muted" />
+                      <Icon name={r.trigger === "cron" ? "clock" : "play"} className="h-3.5 w-3.5 text-faint" />
                       {r.trigger === "cron" ? "Scheduled" : "Run now"}
                     </span>
                   </td>
                   <td>
                     <Tag tone={s.tone}>{s.label}</Tag>
                   </td>
-                  <td>v{r.rule_version}</td>
-                  <td className="tabular-nums">{r.total ? `${r.flagged} / ${r.total}` : "—"}</td>
-                  <td className="whitespace-nowrap tabular-nums">
+                  <td className="num text-muted">v{r.rule_version}</td>
+                  <td className="num text-right">{r.total ? `${r.flagged} / ${r.total}` : "—"}</td>
+                  <td className="num whitespace-nowrap text-right">
                     ${Number(r.cost).toFixed(4)}
-                    {r.ai_failures ? <span className="text-cut"> · {r.ai_failures} failed</span> : null}
+                    {r.ai_failures ? <span className="block text-[12px] text-cut">{r.ai_failures} failed</span> : null}
                   </td>
-                  <td className="max-w-md text-muted">{problems.length ? problems.slice(0, 3).join(" · ") : <span className="text-muted/70">—</span>}</td>
+                  <td className="max-w-sm text-[13px] text-muted">{problems.length ? problems.slice(0, 3).join(" · ") : <span className="text-faint">—</span>}</td>
                 </tr>
               );
             })}

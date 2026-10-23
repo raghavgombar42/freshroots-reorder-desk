@@ -29,14 +29,14 @@ export const NAV_GROUPS: { title: string; items: Item[] }[] = [
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
 
-/** Desktop: fixed left sidebar. */
+/** Desktop: fixed left sidebar, light, with a clear green active state. */
 export function Sidebar() {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="flex flex-1 flex-col gap-6 px-3 py-5">
+    <nav aria-label="Main" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
       {NAV_GROUPS.map((g) => (
         <div key={g.title}>
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">{g.title}</div>
+          <div className="px-2.5 pb-1.5 text-[11.5px] font-medium text-faint">{g.title}</div>
           <ul className="space-y-0.5">
             {g.items.map((it) => {
               const active = isActive(path, it.href);
@@ -44,19 +44,17 @@ export function Sidebar() {
                 <li key={it.href}>
                   <Link
                     href={it.href}
+                    title={it.hint}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active ? "bg-white/12 font-semibold text-white" : "text-white/70 hover:bg-white/6 hover:text-white"
+                    className={`group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition-colors ${
+                      active ? "bg-rail-soft font-semibold text-rail" : "font-medium text-ink/75 hover:bg-sunk hover:text-ink"
                     }`}
                   >
-                    {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r bg-[#9be3bf]" aria-hidden="true" />}
-                    <Icon name={it.icon} className={`h-4 w-4 shrink-0 ${active ? "text-[#9be3bf]" : "text-white/55 group-hover:text-white/80"}`} />
-                    <span className="flex-1">
-                      <span className="block leading-tight">{it.label}</span>
-                      <span className={`block text-[11px] font-normal leading-tight ${active ? "text-white/65" : "text-white/40"}`}>{it.hint}</span>
-                    </span>
+                    {active && <span className="absolute inset-y-2 -left-3 w-[3px] rounded-r bg-rail" aria-hidden="true" />}
+                    <Icon name={it.icon} className={`h-4 w-4 shrink-0 ${active ? "text-rail" : "text-faint group-hover:text-muted"}`} />
+                    <span className="flex-1 truncate">{it.label}</span>
                     {it.step && (
-                      <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold ${active ? "bg-[#9be3bf] text-rail" : "bg-white/10 text-white/55"}`}>
+                      <span className={`num grid h-[18px] min-w-[18px] place-items-center rounded px-1 text-[11px] font-semibold ${active ? "bg-rail text-white" : "bg-sunk text-faint"}`}>
                         {it.step}
                       </span>
                     )}
@@ -68,16 +66,16 @@ export function Sidebar() {
         </div>
       ))}
       <div>
-        <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">Reference</div>
+        <div className="px-2.5 pb-1.5 text-[11.5px] font-medium text-faint">Reference</div>
         <a
           href="/components-map.png"
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/6 hover:text-white"
+          className="group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium text-ink/75 transition-colors hover:bg-sunk hover:text-ink"
         >
-          <Icon name="map" className="h-4 w-4 text-white/55" />
+          <Icon name="map" className="h-4 w-4 text-faint group-hover:text-muted" />
           <span className="flex-1">Components map</span>
-          <Icon name="external" className="h-3.5 w-3.5 text-white/40" />
+          <Icon name="external" className="h-3.5 w-3.5 text-faint" />
         </a>
       </div>
     </nav>
@@ -89,7 +87,7 @@ export function MobileTabs() {
   const path = usePathname();
   const items = NAV_GROUPS.flatMap((g) => g.items);
   return (
-    <nav aria-label="Main" className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+    <nav aria-label="Main" className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none]">
       {items.map((it) => {
         const active = isActive(path, it.href);
         return (
@@ -97,8 +95,8 @@ export function MobileTabs() {
             key={it.href}
             href={it.href}
             aria-current={active ? "page" : undefined}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
-              active ? "bg-white font-semibold text-rail" : "text-white/75 hover:bg-white/10"
+            className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[13px] transition-colors ${
+              active ? "bg-rail-soft font-semibold text-rail" : "font-medium text-muted hover:bg-sunk"
             }`}
           >
             <Icon name={it.icon} className="h-3.5 w-3.5" />

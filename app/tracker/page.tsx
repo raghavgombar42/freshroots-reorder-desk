@@ -3,8 +3,7 @@ import { isOperator } from "@/lib/auth";
 import type { Metrics } from "@/lib/engine";
 import { addLoss } from "../actions";
 import { SubmitButton } from "../buttons";
-import { Icon } from "../icons";
-import { Card, EmptyState, Flash, NoDb, Notice, PageHeader, Stat, Table, Tag, lakh, type SP } from "../ui";
+import { Card, EmptyState, Flash, NoDb, Notice, PageHeader, Stat, StatGrid, Step, Table, Tag, lakh, type SP } from "../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -69,109 +68,122 @@ export default async function Tracker({ searchParams }: { searchParams: SP }) {
       <PageHeader
         eyebrow={
           <>
-            <span className="rounded-full bg-rail px-2 py-0.5 text-[11px] font-semibold text-white">Step 3 of 3</span>
-            <span>Outcome vs baseline · card 13</span>
+            <Step n={3} />
+            <span>Outcome vs baseline</span>
           </>
         }
         title="Loss tracker"
         description={
           <>
-            The outcome is <b className="font-semibold text-ink">₹ lost to stockouts plus overstock write-offs</b>. Time saved is an output, not the
-            outcome. Every 3–4 weeks the actual losses are compared with the same measure from before the desk existed.
+            The outcome is <span className="text-ink">₹ lost to stockouts plus overstock write-offs</span>, not time saved. Every 3–4 weeks actual losses
+            are compared with the same measure from before the desk existed.
           </>
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon="history" label="Baseline (before the desk)" value="₹28–34 L / qtr" sub="Stockouts ₹18–22 L + write-offs ₹10–12 L (case brief)" />
+      <StatGrid>
+        <Stat label="Baseline, before the desk" value="₹28–34 L / qtr" sub="Stockouts ₹18–22 L + write-offs ₹10–12 L (case brief)" />
         <Stat
-          icon="chart"
           label="Latest period"
           tone={last?.verdict === "up" ? "cut" : last?.verdict === "down" ? "data" : undefined}
           value={last ? lakh(last.total) : "—"}
           sub={last ? `${last.period_start} → ${last.period_end} · baseline ${lakh(last.low)}–${lakh(last.high)}` : "No loss period entered yet"}
         />
         <Stat
-          icon="user"
           label="Raghav rejects"
           tone={rejectPct > 50 ? "cut" : undefined}
           value={d.rate.decided ? `${rejectPct}%` : "—"}
           sub={`${d.rate.rejected} rejected, ${d.rate.edited} edited, of ${d.rate.decided}`}
         />
-        <Stat icon="clock" label="Forecast checks" value={fb.size} sub="SKUs with actual sales after a run (card F)" />
-      </div>
+        <Stat label="Forecast checks" value={fb.size} sub="SKUs with actual sales after a run (card F)" />
+      </StatGrid>
 
-      <Card
-        icon="shield"
-        title="Kill criteria"
-        subtitle="Fixed before the pilot started, so the goalposts can't move later."
-        tone={rejectTriggered || lossTriggered ? "cut" : "data"}
-      >
+      <Card title="Kill criteria" subtitle="Fixed before the pilot started, so the goalposts can't move later." tone={rejectTriggered || lossTriggered ? "cut" : undefined}>
         <div className="grid gap-3 md:grid-cols-2">
-          <div className={`rounded-lg border p-3.5 ${rejectTriggered ? "border-cut/30 bg-cut-soft" : "border-line bg-paper/60"}`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-semibold">1 · Early signal: Raghav&apos;s rejections</span>
-              {rejectTriggered ? <Tag tone="cut">Triggered</Tag> : <Tag tone="data">Not triggered</Tag>}
-            </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80">If Raghav rejects more than 50% of recommendations, flag it and re-evaluate the rules.</p>
-            <p className="mt-2 text-[13px]">
-              <b className="font-semibold">Now: {d.rate.decided ? `${rejectPct}%` : "no decisions yet"}</b>
-              {d.rate.decided > 0 && d.rate.decided < 5 && <span className="text-muted"> (too few decisions to judge)</span>}
-            </p>
-          </div>
-          <div className={`rounded-lg border p-3.5 ${lossTriggered ? "border-cut/30 bg-cut-soft" : "border-line bg-paper/60"}`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-semibold">2 · Outcome: losses go up</span>
-              {lossTriggered ? <Tag tone="cut">Triggered: stop</Tag> : <Tag tone="data">Not triggered</Tag>}
-            </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80">
-              If losses rise instead of fall, the automation is doing the opposite of its job: stop immediately, find the root cause, fix, redeploy.
-            </p>
-            <p className="mt-2 text-[13px]">
-              {last ? (
-                <b className="font-semibold">
+          {[
+            {
+              n: 1,
+              title: "Early signal: Raghav's rejections",
+              rule: "If Raghav rejects more than 50% of recommendations, flag it and re-evaluate the rules.",
+              triggered: rejectTriggered,
+              tag: "Triggered",
+              now: (
+                <>
+                  <span className="font-semibold text-ink">Now: {d.rate.decided ? `${rejectPct}%` : "no decisions yet"}</span>
+                  {d.rate.decided > 0 && d.rate.decided < 5 && <span> (too few decisions to judge)</span>}
+                </>
+              ),
+            },
+            {
+              n: 2,
+              title: "Outcome: losses go up",
+              rule: "If losses rise instead of fall, the automation is doing the opposite of its job: stop immediately, find the root cause, fix, redeploy.",
+              triggered: lossTriggered,
+              tag: "Triggered: stop",
+              now: last ? (
+                <span className="font-semibold text-ink">
                   Latest period: {lakh(last.total)} vs baseline {lakh(last.low)}–{lakh(last.high)}
-                </b>
+                </span>
               ) : (
-                <span className="text-muted">No loss period entered yet.</span>
-              )}
-            </p>
-          </div>
+                <span>No loss period entered yet.</span>
+              ),
+            },
+          ].map((k) => (
+            <div key={k.n} className={`rounded-lg border p-3.5 ${k.triggered ? "border-cut/30 bg-cut-soft" : "border-line"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-[14px] font-semibold">
+                  <span className="num mr-1.5 text-faint">{k.n}</span>
+                  {k.title}
+                </span>
+                {k.triggered ? <Tag tone="cut">{k.tag}</Tag> : <Tag tone="data">Not triggered</Tag>}
+              </div>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">{k.rule}</p>
+              <p className="mt-2 text-[13px] text-muted">{k.now}</p>
+            </div>
+          ))}
         </div>
       </Card>
 
-      <Card icon="chart" title="Loss periods" subtitle="Entered by Deepa from finance figures. The case data has no prices, so the desk can't compute ₹ itself.">
+      <Card flush title="Loss periods" subtitle="Entered by Deepa from finance figures. The case data has no prices, so the desk can't compute ₹ itself.">
         {periods.length === 0 ? (
-          <EmptyState icon="chart" title="No periods yet">
-            Deepa enters actual stockout and write-off ₹ every 3–4 weeks. The baseline for each period is pro-rated from ₹28–34 L per quarter.
+          <EmptyState compact icon="chart" title="No periods yet">
+            Deepa enters actual stockout and write-off ₹ every 3–4 weeks. Each period&apos;s baseline is pro-rated from ₹28–34 L per quarter.
           </EmptyState>
         ) : (
-          <Table head={["Period", "Stockout", "Write-off", "Total", "Baseline for period", "vs baseline"]} minWidth={720}>
+          <Table
+            head={[
+              "Period",
+              { label: "Stockout", align: "right" },
+              { label: "Write-off", align: "right" },
+              { label: "Total", align: "right" },
+              { label: "Baseline for period", align: "right" },
+              "vs baseline",
+            ]}
+            minWidth={760}
+          >
             {periods.map((p) => (
               <tr key={p.id}>
                 <td className="whitespace-nowrap">
-                  {p.period_start} → {p.period_end} <span className="text-muted">({p.days} d)</span>
+                  {p.period_start} → {p.period_end} <span className="text-faint">· {p.days} d</span>
                 </td>
-                <td className="tabular-nums">{lakh(Number(p.stockout_inr))}</td>
-                <td className="tabular-nums">{lakh(Number(p.writeoff_inr))}</td>
-                <td className="font-semibold tabular-nums">{lakh(p.total)}</td>
-                <td className="tabular-nums text-muted">
+                <td className="num text-right">{lakh(Number(p.stockout_inr))}</td>
+                <td className="num text-right">{lakh(Number(p.writeoff_inr))}</td>
+                <td className="num text-right font-semibold">{lakh(p.total)}</td>
+                <td className="num text-right text-muted">
                   {lakh(p.low)}–{lakh(p.high)}
                 </td>
                 <td>
                   {p.verdict === "down" ? <Tag tone="data">Below baseline</Tag> : p.verdict === "up" ? <Tag tone="cut">Above: stop</Tag> : <Tag>Within range</Tag>}
-                  {p.note && <span className="ml-2 text-muted">{p.note}</span>}
+                  {p.note && <span className="ml-2 text-[13px] text-muted">{p.note}</span>}
                 </td>
               </tr>
             ))}
           </Table>
         )}
         {operator && (
-          <form action={addLoss} className="mt-5 rounded-lg border border-line bg-paper/60 p-4">
-            <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold">
-              <Icon name="pencil" className="h-3.5 w-3.5 text-muted" /> Add a loss period
-            </div>
-            <div className="flex flex-wrap items-end gap-3 text-[12px] font-medium text-muted">
+          <form action={addLoss} className="border-t border-line bg-sunk/40 px-5 py-4">
+            <div className="mb-2.5 text-[13px] font-semibold">Add a loss period</div>
+            <div className="flex flex-wrap items-end gap-3 text-[12.5px] text-muted">
               <label className="flex flex-col gap-1">
                 From
                 <input type="date" name="start" required className="field" />
@@ -182,17 +194,17 @@ export default async function Tracker({ searchParams }: { searchParams: SP }) {
               </label>
               <label className="flex flex-col gap-1">
                 Stockout loss (₹ L)
-                <input type="number" name="stockout" step="0.1" min="0" required className="field w-32" />
+                <input type="number" name="stockout" step="0.1" min="0" required className="field num w-32 text-right" />
               </label>
               <label className="flex flex-col gap-1">
                 Write-off (₹ L)
-                <input type="number" name="writeoff" step="0.1" min="0" required className="field w-32" />
+                <input type="number" name="writeoff" step="0.1" min="0" required className="field num w-32 text-right" />
               </label>
-              <label className="flex flex-1 flex-col gap-1">
+              <label className="flex min-w-48 flex-1 flex-col gap-1">
                 Note (optional)
-                <input name="note" className="field min-w-48" />
+                <input name="note" className="field" />
               </label>
-              <SubmitButton variant="human" pendingText="Saving…">
+              <SubmitButton variant="primary" size="md" pendingText="Saving…">
                 Add period
               </SubmitButton>
             </div>
@@ -200,46 +212,48 @@ export default async function Tracker({ searchParams }: { searchParams: SP }) {
         )}
       </Card>
 
-      <Card icon="clock" title="Early warning: forecast vs actual" subtitle="Card F. A signal weeks before the ₹ loss shows up.">
-        {fb.size === 0 ? (
-          <Notice tone="info" title="Waiting for new sales weeks">
-            When the next weekly SAP sales export is loaded, each SKU&apos;s estimated weekly demand from a run is compared with what actually sold. A gap
-            above 20% is the early warning.
-          </Notice>
-        ) : (
-          <Table head={["SKU", "Run", "Estimated / wk", "Actual / wk", "Gap"]}>
-            {[...fb].map(([sku, f]) => {
-              const gap = f.actual ? Math.round(((f.actual - f.forecast) / f.actual) * 100) : 0;
-              return (
-                <tr key={sku}>
-                  <td className="font-semibold">{sku}</td>
-                  <td>#{f.runId}</td>
-                  <td className="tabular-nums">{f.forecast}</td>
-                  <td className="tabular-nums">
-                    {f.actual} <span className="text-muted">({f.weeks} wk)</span>
-                  </td>
-                  <td>{Math.abs(gap) > 20 ? <Tag tone="cut">{gap}%</Tag> : <Tag tone="data">{gap}%</Tag>}</td>
-                </tr>
-              );
-            })}
-          </Table>
-        )}
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Card flush title="Early warning: forecast vs actual" subtitle="Card F. A signal weeks before the ₹ loss shows up.">
+          {fb.size === 0 ? (
+            <div className="px-5 pb-5">
+              <Notice title="Waiting for new sales weeks.">
+                When the next weekly SAP sales export is loaded, each SKU&apos;s estimated weekly demand from a run is compared with what actually sold. A
+                gap above 20% is the early warning.
+              </Notice>
+            </div>
+          ) : (
+            <Table head={["SKU", "Run", { label: "Estimated / wk", align: "right" }, { label: "Actual / wk", align: "right" }, { label: "Gap", align: "right" }]}>
+              {[...fb].map(([sku, f]) => {
+                const gap = f.actual ? Math.round(((f.actual - f.forecast) / f.actual) * 100) : 0;
+                return (
+                  <tr key={sku}>
+                    <td className="font-medium">{sku}</td>
+                    <td className="num text-muted">#{f.runId}</td>
+                    <td className="num text-right">{f.forecast}</td>
+                    <td className="num text-right">
+                      {f.actual} <span className="text-faint">({f.weeks} wk)</span>
+                    </td>
+                    <td className="text-right">{Math.abs(gap) > 20 ? <Tag tone="cut">{gap}%</Tag> : <Tag tone="data">{gap}%</Tag>}</td>
+                  </tr>
+                );
+              })}
+            </Table>
+          )}
+        </Card>
 
-      <Card
-        icon="box"
-        title="Counter-metric: total stock on hand"
-        subtitle="More reorders must not quietly pile up stock. The case data has no unit prices, so this tracks units across all SKUs."
-      >
-        <div className="flex flex-wrap gap-2">
-          {d.stockTrend.map((s) => (
-            <span key={s.as_of} className="rounded-lg border border-line bg-paper/60 px-3 py-2 text-[13px] tabular-nums">
-              <span className="text-muted">{s.as_of}</span> <b className="ml-1 font-semibold">{Number(s.units).toLocaleString("en-IN")}</b>
-              <span className="text-muted"> units</span>
-            </span>
-          ))}
-        </div>
-      </Card>
+        <Card title="Counter-metric: stock on hand" subtitle="More reorders must not quietly pile up stock. No unit prices in the case data, so this tracks units.">
+          <ul className="divide-y divide-line">
+            {d.stockTrend.map((s) => (
+              <li key={s.as_of} className="flex items-baseline justify-between py-1.5 text-[13.5px]">
+                <span className="text-muted">{s.as_of}</span>
+                <span className="num font-semibold">
+                  {Number(s.units).toLocaleString("en-IN")} <span className="font-normal text-faint">units</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     </div>
   );
 }

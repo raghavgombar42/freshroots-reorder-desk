@@ -4,7 +4,8 @@ import { zohoConfigured, zohoPoUrl } from "@/lib/zoho";
 import { pushToZoho } from "../actions";
 import { SubmitButton } from "../buttons";
 import { Icon } from "../icons";
-import { Card, EmptyState, Flash, NoDb, Notice, PageHeader, Table, Tag, ist, type SP } from "../ui";
+import { buttonClass } from "../styles";
+import { Card, EmptyState, Flash, NoDb, Notice, PageHeader, Step, Table, Tag, ist, type SP } from "../ui";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -37,35 +38,33 @@ export default async function Pos({ searchParams }: { searchParams: SP }) {
       <PageHeader
         eyebrow={
           <>
-            <span className="rounded-full bg-rail px-2 py-0.5 text-[11px] font-semibold text-white">Step 2 of 3</span>
-            <span>Approved lines → Zoho Inventory · cards 10 → 12</span>
+            <Step n={2} />
+            <span>Approved lines → Zoho Inventory</span>
           </>
         }
         title="Draft POs"
         description={
           <>
-            Only lines Raghav approved or edited appear here, one per SKU per run. They go to Zoho Inventory as <b className="font-semibold text-ink">draft</b>{" "}
-            purchase orders, one per distributor. <b className="font-semibold text-ink">The desk never issues an order</b>: procurement opens the draft in
-            Zoho, adds prices and places it, as today.
+            Lines Raghav approved or edited, one per SKU per run, sent to Zoho Inventory as <span className="text-ink">draft</span> purchase orders, one
+            per distributor. <span className="text-ink">The desk never issues an order</span>: procurement adds prices and places it in Zoho.
           </>
         }
         actions={
-          live ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-data-soft px-3 py-1 text-xs font-semibold text-data ring-1 ring-inset ring-data/25">
-              <span className="h-1.5 w-1.5 rounded-full bg-data" aria-hidden="true" /> Zoho Inventory connected
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-human-soft px-3 py-1 text-xs font-semibold text-human ring-1 ring-inset ring-human/25">
-              <span className="h-1.5 w-1.5 rounded-full bg-human" aria-hidden="true" /> Zoho not connected: CSV export only
-            </span>
-          )
+          <span
+            className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[12.5px] font-medium ${
+              live ? "border-rail/20 bg-rail-soft text-rail" : "border-human/25 bg-human-soft text-human"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-rail" : "bg-human"}`} aria-hidden="true" />
+            {live ? "Zoho Inventory connected" : "Zoho not connected · CSV export only"}
+          </span>
         }
       />
 
-      <Notice tone="info" title="Pilot setup">
-        Drafts go to a pilot Zoho Inventory organisation, &ldquo;Freshroots (Pilot)&rdquo;. Prices are ₹0 because the case data has no prices; procurement
-        fills them in before issuing. A run can be sent only once per distributor, so a double click never creates a duplicate PO. The CSV download is a
-        fallback in Zoho&apos;s import format.
+      <Notice title="Pilot setup.">
+        Drafts go to a pilot Zoho Inventory organisation, &ldquo;Freshroots (Pilot)&rdquo;, at ₹0 because the case data has no prices; procurement fills
+        them in before issuing. A run can be sent only once per distributor, so a double click never creates a duplicate. The CSV is a fallback in
+        Zoho&apos;s import format.
       </Notice>
 
       {byRun.size === 0 && (
@@ -81,59 +80,80 @@ export default async function Pos({ searchParams }: { searchParams: SP }) {
         return (
           <Card
             key={runId}
-            icon="file"
-            title={`Run #${runId}`}
-            subtitle={`${ist(ls[0].started_at)} · ${ls.length} line${ls.length > 1 ? "s" : ""} · ${vendors.length} distributor${vendors.length > 1 ? "s" : ""} · ${units.toLocaleString("en-IN")} units`}
+            flush
+            title={
+              <span className="flex items-center gap-2">
+                Run #{runId}
+                {live && pending === 0 && (
+                  <Tag tone="data">
+                    <Icon name="check" className="h-3 w-3" /> All in Zoho
+                  </Tag>
+                )}
+                {live && pending > 0 && <Tag tone="human">{pending} not sent</Tag>}
+              </span>
+            }
+            subtitle={
+              <span className="num">
+                {ist(ls[0].started_at)} · {ls.length} line{ls.length > 1 ? "s" : ""} · {vendors.length} distributor{vendors.length > 1 ? "s" : ""} ·{" "}
+                {units.toLocaleString("en-IN")} units
+              </span>
+            }
             right={
               <div className="flex flex-wrap items-center gap-2">
+                <a href={`/api/po-csv?run=${runId}`} className={buttonClass("secondary")}>
+                  <Icon name="download" className="h-3.5 w-3.5" />
+                  CSV
+                </a>
                 {live && operator && pending > 0 && (
                   <form action={pushToZoho}>
                     <input type="hidden" name="runId" value={runId} />
-                    <SubmitButton variant="approve" icon="send" pendingText="Sending to Zoho…">
+                    <SubmitButton variant="primary" icon="send" pendingText="Sending to Zoho…">
                       Send {pending} draft PO{pending > 1 ? "s" : ""} to Zoho
                     </SubmitButton>
                   </form>
                 )}
-                {live && pending > 0 && !operator && <Tag tone="human">{pending} not sent yet</Tag>}
-                {live && pending === 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-data">
-                    <Icon name="check" className="h-3.5 w-3.5" /> All in Zoho
-                  </span>
-                )}
-                <a
-                  href={`/api/po-csv?run=${runId}`}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-paper"
-                >
-                  <Icon name="download" className="h-3.5 w-3.5" />
-                  CSV
-                </a>
               </div>
             }
           >
-            <Table head={["SKU", "Distributor (vendor)", "Quantity", "Decision", "Zoho draft PO"]} minWidth={640}>
+            <Table
+              head={[
+                { label: "SKU", width: "28%" },
+                "Distributor (vendor)",
+                { label: "Quantity", align: "right" },
+                "Decision",
+                "Zoho draft PO",
+              ]}
+              minWidth={700}
+            >
               {ls.map((l) => {
                 const z = zohoBy.get(`${runId}:${l.vendor_id}`);
                 return (
                   <tr key={l.id}>
                     <td>
-                      <span className="font-semibold">{String(l.name).replace("Freshroots ", "")}</span>
-                      <span className="ml-1.5 font-mono text-[11px] text-muted">{l.sku_id}</span>
+                      <span className="font-medium">{String(l.name).replace("Freshroots ", "")}</span>
+                      <span className="ml-2 font-mono text-[11.5px] text-faint">{l.sku_id}</span>
                     </td>
                     <td>
-                      {l.vendor_name ?? l.vendor_id} <span className="font-mono text-[11px] text-muted">{l.vendor_id}</span>
+                      {l.vendor_name ?? l.vendor_id} <span className="ml-1 font-mono text-[11.5px] text-faint">{l.vendor_id}</span>
                     </td>
-                    <td className="font-semibold tabular-nums">{Number(l.qty).toLocaleString("en-IN")}</td>
+                    <td className="num text-right font-semibold">{Number(l.qty).toLocaleString("en-IN")}</td>
                     <td>
                       <Tag tone={l.decision === "edited" ? "human" : "data"}>{l.decision === "edited" ? "Edited by Raghav" : "Approved by Raghav"}</Tag>
                     </td>
                     <td>
                       {z?.zoho_po_id ? (
-                        <a href={zohoPoUrl(z.zoho_po_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-data hover:underline">
-                          {z.zoho_po_number} <span className="font-normal text-muted">· draft</span>
+                        <a
+                          href={zohoPoUrl(z.zoho_po_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-rail underline-offset-2 hover:underline"
+                        >
+                          {z.zoho_po_number}
+                          <span className="font-normal text-muted">· draft</span>
                           <Icon name="external" className="h-3 w-3" />
                         </a>
                       ) : (
-                        <span className="text-muted">Not sent</span>
+                        <span className="text-faint">Not sent</span>
                       )}
                     </td>
                   </tr>
