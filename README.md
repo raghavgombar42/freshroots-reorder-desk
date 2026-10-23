@@ -20,7 +20,7 @@ Twice a week (Mon + Thu, 7:00 am IST) the desk reads the SAP export, checks it, 
 | 7–8 | Gemini explains flagged recs + 3-line summary (words only) | `lib/ai.ts` |
 | R | Rule numbers, versioned, editable | `app/rules`, `rule_settings` table |
 | A / 9 / 11 | Approve / edit / reject + reason, reject rate | `app/page.tsx`, `decisions` table |
-| 10 / 12 | Draft PO lines → Zoho CSV | `po_lines`, `app/api/po-csv` |
+| 10 / 12 | Draft PO lines → Zoho Inventory draft POs (API), CSV fallback | `po_lines`, `lib/zoho.ts`, `app/api/po-csv` |
 | 13 / F | Loss tracker vs ₹28–34 L/qtr, kill criteria, forecast vs actual | `app/tracker` |
 | 14 | Recommendation sheet | `app/page.tsx` |
 
@@ -37,6 +37,9 @@ npm run dev
 ```
 
 `.env.local`: `OPENROUTER_API_KEY`, `GEMINI_MODEL` (google/…), `DATABASE_URL` (Supabase **Session pooler**, port 5432), `CRON_SECRET`, `OPERATOR_PASSCODE`.
+
+## Zoho Inventory
+Draft POs go to Zoho Inventory through a Self Client (org "Freshroots (Pilot)", `.com` data centre). One draft PO per distributor per run, never pushed twice; distributors become vendors and SKUs become purchasable items on first use. The app never issues a PO. Env: `ZOHO_DC`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` (set by `npm run zoho:connect` from a grant code; scopes contacts/items CREATE+READ, items.UPDATE, purchaseorders CREATE+READ, settings.READ). `npm run zoho:push -- <runId>` does the same as the button.
 
 ## Database changes (Supabase GitHub integration)
 Schema changes go in `supabase/migrations/` as a new timestamped `.sql` file. On push to `main`, Supabase applies them to the project. `db/schema.sql` is the same schema for `npm run db:setup`; keep both in step.
